@@ -1,4 +1,4 @@
-#include <FastBVH/BuildStrategy.h>
+﻿#include <FastBVH/BuildStrategy.h>
 
 namespace FastBVH {
 
@@ -100,9 +100,11 @@ BVH<Float, Primitive> BuildStrategy<Float, 1>::operator()(Iterable<Primitive> pr
     node.right_offset = Untouched;
 
     // Calculate the bounding box for this node
+	//根据索引获取对应三角面的BBAA
     auto bb = converter(primitives[start]);
     auto bc = BBox<Float>(bb.getCenter());
 
+	//找到当前所有三角面中最大的BBAA, 以及该包围盒的中心
     for (uint32_t p = start + 1; p < end; ++p) {
       auto box = converter(primitives[p]);
       bb.expandToInclude(box);
@@ -113,6 +115,7 @@ BVH<Float, Primitive> BuildStrategy<Float, 1>::operator()(Iterable<Primitive> pr
 
     // If the number of primitives at this point is less than the leaf
     // size, then this will become a leaf. (Signified by right_offset == 0)
+	// 最低细分要求
     if (primitive_count <= leaf_size) {
       node.right_offset = 0;
     }
@@ -141,6 +144,8 @@ BVH<Float, Primitive> BuildStrategy<Float, 1>::operator()(Iterable<Primitive> pr
     Float split_coord = .5f * (bc.min[split_dim] + bc.max[split_dim]);
 
     // Partition the list of objects on this split
+	// 采用二分法，对当前空间内容做排序，其中left小于中间值，右侧大于中间值，该二叉树是通过
+	//stack来进行存储的
     uint32_t mid = start;
     for (uint32_t i = start; i < end; ++i) {
       auto box = converter(primitives[i]);
@@ -155,6 +160,7 @@ BVH<Float, Primitive> BuildStrategy<Float, 1>::operator()(Iterable<Primitive> pr
       mid = start + (end - start) / 2;
     }
 
+	//二分遍历完成后，分拆成两个节点，存储到stack（todo）中。
     BuildEntry right_child{node_count - 1, mid, end};
 
     BuildEntry left_child{node_count - 1, start, mid};
